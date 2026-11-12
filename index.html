@@ -370,7 +370,7 @@
               <button data-sem="1.5" aria-pressed="true">Vừa — 1,5s</button>
               <button data-sem="0.8">Nhanh — 0,8s</button>
             </div>
-            <p class="muted">Thời gian giữ mỗi chữ. Hết một từ, người phát về vị trí nghỉ (hai cờ buông xuống) một nhịp.</p>
+            <p class="muted">Thời gian giữ mỗi chữ. Khi đổi chữ, tay chuyển mượt theo đà phất cờ rồi mới giữ yên ở vị trí mới để đọc. Hết một từ, người phát về vị trí nghỉ (hai cờ buông xuống) một nhịp.</p>
           </div>
         </div>
 
@@ -683,7 +683,7 @@ function nearestAngle(cur, target){ while (target - cur > 180) target -= 360; wh
 const CLOTH_C = 4, CLOTH_R = 3;
 const SAG_MAX = 13.5; /* độ rủ tối đa ở mép ngoài khi đứng yên (px, cỡ cờ 34px) */
 const cloth = {};
-function clothSim(){ return { s:0, v:0, t:Math.random()*10 }; }
+function clothSim(){ return { s:0, v:0, t:Math.random()*10, w:0, wv:0 }; }
 function registerCloth(prefix){ cloth[prefix] = { L:clothSim(), R:clothSim(), prevL:null, prevR:null, angL:0, angR:0, flexL:0, flexR:0 }; }
 function kickCloth(prefix, side, deltaDeg){
   const inst = cloth[prefix]; if (!inst) return;
@@ -765,12 +765,18 @@ function clothPoint(side, sim, ci, ri, angDeg){
   /* Sóng phấp phới QUANH DÁNG XUÔI XUỐNG: giữ yên chỉ rất nhẹ (amp ~0.7),
      vung mạnh mới bay rõ; hướng sóng chính dọc theo trọng lực nên sóng
      không đẩy mép vải vọt lên cao hơn đầu cán ở các vị trí hướng lên. */
-  const amp = 0.7 + Math.min(5, Math.abs(sim.s) * 0.28);
+  const amp = 0.7 + Math.min(5, Math.abs(sim.s) * 0.28) + Math.min(3.5, Math.abs(sim.w || 0) * 0.16);
   const w = Math.sin(sim.t * 4.1 - u * 3.1 + v * 0.7) * 0.68 + Math.sin(sim.t * 6.7 - u * 4.9 + v * 1.2) * 0.32;
   const along = sag + w * amp * Math.pow(u, 1.25) + sim.s * 0.04 * u * u;
   /* Co nhẹ theo chiều trải vải khi sóng mạnh (vải không giãn) */
   const spread = u * 34 - Math.abs(w) * amp * 0.06 * u;
-  return [hx + E[0] * spread + g[0] * along, hy + E[1] * spread + g[1] * along];
+  /* HIỆU ỨNG PHẤT: mép vải trễ sau tay rồi quật tiếp (overshoot) — sim.w là
+     góc lệch lò xo của mép vải (xem clothLoop), biên độ tăng theo u^2 nên
+     rõ nhất ở mép ngoài; hướng lệch là hướng TIẾP TUYẾN cục bộ (trục x của
+     cẳng tay) nên ở vị trí cán hướng lên, lệch này là lệch NGANG, không
+     đẩy vải vọt lên trên cán. */
+  const whip = (sim.w || 0) * 0.32 * u * u;
+  return [hx + E[0] * spread + g[0] * along + whip, hy + E[1] * spread + g[1] * along];
 }
 let clothLast = null;
 function clothLoop(ts){
@@ -786,6 +792,24 @@ function clothLoop(ts){
       sim.t += dt;
       /* Góc hiệu dụng của cán = góc tay + góc gấp khuỷu của chính tay đó */
       const ang = (side === "L" ? inst.angL + inst.flexL : inst.angR + inst.flexR);
+      /* ---- HIỆU ỨNG PHẤT (quật cờ) ----
+         Vận tốc góc tức thời của tay (làm mượt) được đo từ chính góc tay
+         mà vòng lặp hình (figLoop) đang ghi vào inst.ang* mỗi khung hình.
+         Góc lệch mép vải sim.w chạy theo lò xo–giảm chấn THIẾU damping
+         (omega^2 = 90, hệ số giảm chấn 2*zeta*omega = 5,3 -> zeta ~ 0,28):
+         đích của lò xo là độ trễ tỉ lệ với vận tốc góc tay (tay quét càng
+         nhanh vải càng trễ sau), tay dừng thì đích về 0 và vải QUẬT TIẾP
+         qua phía trước, đổi dấu 2-3 nhịp tắt dần trong ~0,5-0,9 giây rồi
+         mới yên về quanh dáng rủ trọng lực. */
+      const pKey = "pA" + side, vKey = "vA" + side;
+      if (inst[pKey] === undefined){ inst[pKey] = ang; inst[vKey] = 0; }
+      const dAng = ang - inst[pKey]; inst[pKey] = ang;
+      const velRaw = Math.max(-900, Math.min(900, dAng / dt));
+      inst[vKey] = (inst[vKey] || 0) * 0.55 + velRaw * 0.45;
+      if (Math.abs(dAng) > 0.02) sim.v += dAng * 0.85;
+      const whipTarget = -Math.max(-24, Math.min(24, inst[vKey] * 0.05));
+      sim.wv += (-90 * (sim.w - whipTarget) - 5.3 * sim.wv) * dt;
+      sim.w = Math.max(-30, Math.min(30, sim.w + sim.wv * dt));
       const grid = [];
       for (let c = 0; c <= CLOTH_C; c++){ grid[c] = []; for (let r = 0; r <= CLOTH_R; r++) grid[c][r] = clothPoint(side, sim, c, r, ang); }
       for (let r = 0; r < CLOTH_R; r++) for (let c = 0; c < CLOTH_C; c++){
@@ -871,54 +895,143 @@ function foldSideFor(pair){
   if (pl === hi && pr !== hi) return "L";
   return "R";
 }
+/* ============================================================
+   CHUYỂN TAY LINH HOẠT NHƯ NGƯỜI THẬT KHI ĐỔI CHỮ
+   - Mỗi lần đổi vị trí, tay dành một khoảng CHUYỂN RIÊNG ở đầu nhịp:
+     thời lượng tỉ lệ với khoảng góc phải quét (35-55% thời gian giữ
+     1 chữ, kẹp trong [150, 750] ms); phần còn lại của nhịp giữ yên ở
+     vị trí đích để người nhận đọc. Tổng nhịp giây/chữ không đổi.
+   - Quỹ đạo góc: MINIMUM-JERK s(u) = 10u^3 - 15u^4 + 6u^5 trên đường
+     góc ngắn nhất — vận tốc góc bằng 0 ở hai đầu, đỉnh ở giữa quãng;
+     góc được ghi TỪNG KHUNG HÌNH bằng vòng lặp requestAnimationFrame
+     (figLoop), khung đầu đúng bằng góc chữ trước, không bước nhảy.
+   - KHUỶU LỎNG THEO ĐÀ: cẳng tay trễ sau cánh tay — góc gấp khuỷu
+     phụ = sin(pi*u) * (6 + 10 * quét/180) độ, max giữa quãng, về 0 ở
+     đích. Hai tay cùng chuyển: tay quét ít hơn bắt đầu trễ 6% thời
+     lượng chuyển. Gấp phụ này cộng vào cùng transform khuỷu với gấp
+     tách chữ trùng 85 độ (hai cơ chế không bao giờ chạy cùng lúc vì
+     chữ trùng thì không đổi vị trí).
+   - Tới đích: NẨY DẶT tắt dần ~1-2 độ trong ~240 ms rồi ổn định.
+   Toàn bộ vẫn xoay bằng thuộc tính transform SVG quanh vai (100,62)
+   và khuỷu (100,95) trong tọa độ cục bộ qua applyFig — TUYỆT ĐỐI
+   không dùng CSS transform/origin.
+   ============================================================ */
+function minJerk(u){ u = Math.min(1, Math.max(0, u)); return u * u * u * (10 + u * (-15 + 6 * u)); }
+function transDurMs(holdMs, sweepDeg){
+  if (sweepDeg < 0.5) return 0;
+  const f = 0.35 + 0.20 * Math.min(1, sweepDeg / 180);
+  return Math.round(Math.min(750, Math.max(150, holdMs * f)));
+}
+function semHoldMs(){
+  const el = document.getElementById("semRange");
+  const v = el ? parseFloat(el.value) : 1.5;
+  return (isNaN(v) ? 1.5 : v) * 1000;
+}
+const figAnims = {};
+function applyFig(prefix, state){
+  const gL = $(prefix + "ArmL"), gR = $(prefix + "ArmR");
+  if (!gL || !gR) return;
+  gL.setAttribute("transform", `rotate(${state.l || 0} 100 62)`);
+  gR.setAttribute("transform", `rotate(${state.r || 0} 100 62)`);
+  let flexL = 0, flexR = 0;
+  if (state.flex){ if ((state.flexSide || "R") === "L") flexL = -85 * state.flex; else flexR = 85 * state.flex; }
+  flexL += state.animFlexL || 0;
+  flexR += state.animFlexR || 0;
+  const fL = $(prefix + "ForeL"), fR = $(prefix + "ForeR");
+  if (fL) fL.setAttribute("transform", `rotate(${flexL} 100 95)`);
+  if (fR) fR.setAttribute("transform", `rotate(${flexR} 100 95)`);
+  const inst = cloth[prefix];
+  if (inst){ inst.angL = state.l || 0; inst.angR = state.r || 0; inst.flexL = flexL; inst.flexR = flexR; }
+}
+function animateFigureTo(prefix, state, tl, tr, holdMs){
+  const fromL = state.l || 0, fromR = state.r || 0;
+  const toL = nearestAngle(fromL, tl), toR = nearestAngle(fromR, tr);
+  const sweepL = Math.abs(toL - fromL), sweepR = Math.abs(toR - fromR);
+  const sweep = Math.max(sweepL, sweepR);
+  const dur = transDurMs(holdMs || semHoldMs(), sweep);
+  state.animFlexL = 0; state.animFlexR = 0;
+  if (dur <= 0){
+    delete figAnims[prefix];
+    state.l = toL; state.r = toR;
+    applyFig(prefix, state);
+    return 0;
+  }
+  let delayL = 0, delayR = 0;
+  if (sweepL > 0.5 && sweepR > 0.5){ if (sweepL < sweepR) delayL = Math.round(dur * 0.06); else delayR = Math.round(dur * 0.06); }
+  figAnims[prefix] = { state, phase:"go", t0: performance.now(), dur, fromL, toL, fromR, toR, sweepL, sweepR, delayL, delayR,
+    ampL: sweepL > 0.5 ? Math.min(2, 0.5 + sweepL / 90) : 0, ampR: sweepR > 0.5 ? Math.min(2, 0.5 + sweepR / 90) : 0 };
+  applyFig(prefix, state); /* khung đầu: góc đúng bằng góc chữ trước */
+  return dur;
+}
+function stepFigAnim(prefix, now){
+  const a = figAnims[prefix];
+  if (!a) return;
+  const st = a.state;
+  if (a.phase === "go"){
+    let done = true;
+    const arms = [
+      { key:"l", fKey:"animFlexL", from:a.fromL, to:a.toL, sweep:a.sweepL, delay:a.delayL, sign:-1 },
+      { key:"r", fKey:"animFlexR", from:a.fromR, to:a.toR, sweep:a.sweepR, delay:a.delayR, sign:1 }
+    ];
+    arms.forEach(arm => {
+      if (arm.sweep <= 0.5){ st[arm.key] = arm.to; st[arm.fKey] = 0; return; }
+      const effDur = Math.max(1, a.dur - arm.delay);
+      const u = Math.min(1, Math.max(0, (now - a.t0 - arm.delay) / effDur));
+      if (u < 1) done = false;
+      st[arm.key] = arm.from + (arm.to - arm.from) * minJerk(u);
+      st[arm.fKey] = (u > 0 && u < 1) ? arm.sign * Math.sin(Math.PI * u) * (6 + 10 * Math.min(1, arm.sweep / 180)) : 0;
+    });
+    if (done){
+      st.l = a.toL; st.r = a.toR; st.animFlexL = 0; st.animFlexR = 0;
+      a.phase = "settle"; a.t0 = now;
+    }
+  } else { /* settle: nẩy dặt tắt dần quanh vị trí đích */
+    const t = now - a.t0, DUR = 240;
+    if (t >= DUR){ st.l = a.toL; st.r = a.toR; delete figAnims[prefix]; }
+    else {
+      const dec = Math.exp(-t / 85), osc = Math.sin(2 * Math.PI * t / 170) * dec;
+      st.l = a.toL + a.ampL * osc;
+      st.r = a.toR + a.ampR * osc;
+    }
+  }
+  applyFig(prefix, st);
+}
+function figLoop(ts){
+  requestAnimationFrame(figLoop);
+  for (const p in figAnims) stepFigAnim(p, ts);
+}
+requestAnimationFrame(figLoop);
+
 function setForeFlex(prefix, state, flex, durMs, side){
   if (!state) return;
   state.flex = flex;
   if (side) state.flexSide = side;
-  const useSide = state.flexSide || "R";
-  const gL = $(prefix + "ForeL"), gR = $(prefix + "ForeR");
-  if (!gL || !gR) return;
-  /* CHỈ gấp đúng 1 tay (useSide); tay còn lại giữ nguyên duỗi thẳng làm mốc.
-     Gấp bằng thuộc tính transform SVG quanh ĐIỂM KHUỶU cục bộ (100,95),
-     KHÔNG dùng CSS transform + origin (tâm quay CSS làm tay tách thân). */
-  gL.setAttribute("transform", `rotate(${flex && useSide === "L" ? -85 * flex : 0} 100 95)`);
-  gR.setAttribute("transform", `rotate(${flex && useSide === "R" ? 85 * flex : 0} 100 95)`);
-  /* Ghi góc gấp vào mô phỏng vải để hướng rủ trọng lực bám theo cẳng tay thật */
-  const cinst = cloth[prefix];
-  if (cinst){ cinst.flexL = flex && useSide === "L" ? -85 * flex : 0; cinst.flexR = flex && useSide === "R" ? 85 * flex : 0; }
-  if (flex) kickCloth(prefix, useSide, 50 * flex);
+  /* CHỈ gấp đúng 1 tay (flexSide); tay còn lại giữ nguyên duỗi thẳng làm
+     mốc. Gấp được applyFig ghi bằng transform SVG quanh ĐIỂM KHUỶU cục
+     bộ (100,95), cộng dồn với góc gấp phụ theo đà khi chuyển vị trí. */
+  applyFig(prefix, state);
+  if (flex) kickCloth(prefix, state.flexSide || "R", 50 * flex);
 }
-function setFigure(prefix, pair, state){
+/* Trả về thời lượng chuyển (ms) khi hình có state (hình động); hình tĩnh
+   (state = null, 26 hình mini) vẫn đặt tức thời như trước. */
+function setFigure(prefix, pair, state, holdMs){
   const [pl, pr] = assignArms(pair);
   const gL = $(prefix + "ArmL"), gR = $(prefix + "ArmR");
-  if (!gL || !gR) return;
+  if (!gL || !gR) return 0;
   const tl = rotL(pl), tr = rotR(pr);
   const inst = cloth[prefix];
   if (state){
-    const oldL = state.l || 0, oldR = state.r || 0;
-    state.l = nearestAngle(state.l || 0, tl);
-    state.r = nearestAngle(state.r || 0, tr);
-    /* Xoay bằng thuộc tính transform SVG quanh ĐIỂM VAI cục bộ (100,62) —
-       cùng nguyên tắc với hình tĩnh; KHÔNG dùng CSS transform + origin. */
-    gL.setAttribute("transform", `rotate(${state.l} 100 62)`);
-    gR.setAttribute("transform", `rotate(${state.r} 100 62)`);
-    if (inst){
-      inst.angL = state.l; inst.angR = state.r;
-      const dL = Math.abs(state.l - oldL), dR = Math.abs(state.r - oldR);
-      if (dL > 4) kickCloth(prefix, "L", dL);
-      if (dR > 4) kickCloth(prefix, "R", dR);
-    }
-    if (!state.flex) setForeFlex(prefix, state, 0);
-  } else {
-    gL.setAttribute("transform", `rotate(${tl} 100 62)`);
-    gR.setAttribute("transform", `rotate(${tr} 100 62)`);
-    if (inst){
-      inst.angL = tl; inst.angR = tr;
-      if (inst.prevL !== null){ const d = Math.abs(tl - inst.prevL); if (d > 4) kickCloth(prefix, "L", d); }
-      if (inst.prevR !== null){ const d = Math.abs(tr - inst.prevR); if (d > 4) kickCloth(prefix, "R", d); }
-      inst.prevL = tl; inst.prevR = tr;
-    }
+    return animateFigureTo(prefix, state, tl, tr, holdMs);
   }
+  gL.setAttribute("transform", `rotate(${tl} 100 62)`);
+  gR.setAttribute("transform", `rotate(${tr} 100 62)`);
+  if (inst){
+    inst.angL = tl; inst.angR = tr;
+    if (inst.prevL !== null && inst.prevL !== undefined){ const d = Math.abs(tl - inst.prevL); if (d > 4) kickCloth(prefix, "L", d); }
+    if (inst.prevR !== null && inst.prevR !== undefined){ const d = Math.abs(tr - inst.prevR); if (d > 4) kickCloth(prefix, "R", d); }
+    inst.prevL = tl; inst.prevR = tr;
+  }
+  return 0;
 }
 
 /* Chuỗi bước semaphore cho 1 bản tin đã chuyển đổi (tự chèn Báo số / Báo chữ) */
@@ -1080,7 +1193,7 @@ function playLetterTone(code, wpm, lampEl, done){
 /* ============================================================
    TRÌNH PHÁT — dùng chung cho Nhận tin (và xem trước)
    ============================================================ */
-const player = { playing:false, paused:false, timer:null, flexTimer:null, idx:0, events:null, steps:null, total:0, semState:{l:0,r:0,flex:0}, prevPair:null, prevType:null };
+const player = { playing:false, paused:false, timer:null, flexTimer:null, labelTimer:null, stepToken:0, idx:0, events:null, steps:null, total:0, semState:{l:0,r:0,flex:0}, prevPair:null, prevType:null };
 function setControls(){
   $("playBtn").disabled = player.playing && !player.paused;
   $("pauseBtn").disabled = !player.playing;
@@ -1099,6 +1212,8 @@ function signalOff(){
 function stopPlayback(resetPos){
   clearTimeout(player.timer);
   clearTimeout(player.flexTimer);
+  clearTimeout(player.labelTimer);
+  player.stepToken++;
   player.playing = false; player.paused = false;
   player.prevPair = null; player.prevType = null;
   if (player.semState.flex) setForeFlex("main", player.semState, 0, 120);
@@ -1155,39 +1270,44 @@ function playSemStep(){
     setControls(); return;
   }
   const st = player.steps[player.idx++];
-  setFigure("main", st.pair, player.semState);
   const hold = parseFloat($("semRange").value) * 1000;
   /* Ký tự trùng với ký tự ngay trước (cùng cặp vị trí, không qua nhịp nghỉ giữa từ):
      CHỈ gấp khuỷu 1 tay di chuyển (tay còn lại giữ thẳng làm mốc) rồi mở ra trong ~45% thời gian giữ chữ, phần còn lại giữ thẳng. */
   const isRepeat = !!(player.prevPair && st.type !== "space" && player.prevType !== "space" &&
     st.pair[0] === player.prevPair[0] && st.pair[1] === player.prevPair[1]);
   player.prevPair = st.pair; player.prevType = st.type;
-  const scheduleNext = () => {
-    if (isRepeat){
-      const flexDur = hold * 0.45, half = Math.round(flexDur / 2);
-      setForeFlex("main", player.semState, 1, half, foldSideFor(st.pair));
-      player.flexTimer = setTimeout(() => { if (player.playing && !player.paused) setForeFlex("main", player.semState, 0, half); }, half);
+  /* CHUYỂN TAY MƯỢT: tay quét sang vị trí mới bằng quỹ đạo minimum-jerk
+     trong khoảng chuyển riêng ở đầu nhịp (transMs); chữ chỉ được tính là
+     "đang hiển thị để đọc" (nhãn + tiến độ) SAU khi chuyển xong. Tổng
+     nhịp vẫn đúng hold như lịch cũ. Chữ trùng: transMs = 0, gấp khuỷu
+     tách chữ chạy như cũ. */
+  const transMs = setFigure("main", st.pair, player.semState, hold);
+  const token = ++player.stepToken;
+  const showStep = () => {
+    if (token !== player.stepToken || !player.playing || player.paused) return;
+    if (st.type === "char"){
+      setProgress(st.charNo, player.total);
+      if (showEffective()){
+        $("nowSemChar").textContent = st.ch;
+        $("nowSemCode").textContent = `Vị trí ${st.pair[0]} + ${st.pair[1]} (${POS_NAME[st.pair[0]]} · ${POS_NAME[st.pair[1]]})`;
+      } else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
+    } else if (st.type === "space"){
+      if (showEffective()){ $("nowSemChar").textContent = "␣"; $("nowSemCode").textContent = "Nghỉ — hết một từ"; }
+      else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
+    } else { // num / alpha
+      if (showEffective()){
+        $("nowSemChar").textContent = st.type === "num" ? "🔢" : "🔤";
+        $("nowSemCode").textContent = `Tín hiệu ${st.label} — vị trí ${st.pair[0]} + ${st.pair[1]}`;
+      } else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
     }
-    player.timer = setTimeout(playSemStep, hold);
   };
-  if (st.type === "char"){
-    setProgress(st.charNo, player.total);
-    if (showEffective()){
-      $("nowSemChar").textContent = st.ch;
-      $("nowSemCode").textContent = `Vị trí ${st.pair[0]} + ${st.pair[1]} (${POS_NAME[st.pair[0]]} · ${POS_NAME[st.pair[1]]})`;
-    } else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
-    scheduleNext();
-  } else if (st.type === "space"){
-    if (showEffective()){ $("nowSemChar").textContent = "␣"; $("nowSemCode").textContent = "Nghỉ — hết một từ"; }
-    else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
-    scheduleNext();
-  } else { // num / alpha
-    if (showEffective()){
-      $("nowSemChar").textContent = st.type === "num" ? "🔢" : "🔤";
-      $("nowSemCode").textContent = `Tín hiệu ${st.label} — vị trí ${st.pair[0]} + ${st.pair[1]}`;
-    } else { $("nowSemChar").textContent = ""; $("nowSemCode").textContent = ""; }
-    scheduleNext();
+  if (transMs > 0) player.labelTimer = setTimeout(showStep, transMs); else showStep();
+  if (isRepeat){
+    const flexDur = hold * 0.45, half = Math.round(flexDur / 2);
+    setForeFlex("main", player.semState, 1, half, foldSideFor(st.pair));
+    player.flexTimer = setTimeout(() => { if (player.playing && !player.paused) setForeFlex("main", player.semState, 0, half); }, half);
   }
+  player.timer = setTimeout(playSemStep, hold);
 }
 
 /* ============================================================
@@ -1497,6 +1617,7 @@ $("draftSemFig").innerHTML = semFigureSVG("draft", true, true);
 registerCloth("draft");
 $("bigSemFig").innerHTML = semFigureSVG("big", false, true);
 registerCloth("big");
+const bigState = { l:0, r:0, flex:0 };
 
 /* Vòng chọn vị trí cờ (2 tay) */
 function buildDial(el, isLeft){
@@ -1539,12 +1660,12 @@ buildMorseGrid($("morseDigitGrid"), [..."0123456789"]);
     registerCloth("m" + c);
     setFigure("m" + c, SEM[c], null);
   });
-  setFigure("big", SEM.A, null);
+  setFigure("big", SEM.A, bigState);
   $("semGrid").querySelectorAll(".semcell").forEach(b => b.addEventListener("click", () => {
     $("semGrid").querySelectorAll(".semcell").forEach(x => x.classList.remove("sel"));
     b.classList.add("sel");
     const c = b.dataset.ch;
-    setFigure("big", SEM[c], null);
+    setFigure("big", SEM[c], bigState);
     $("bigSemChar").textContent = c;
     $("bigSemCode").textContent = `Vị trí ${SEM[c][0]} + ${SEM[c][1]} (${POS_NAME[SEM[c][0]]} · ${POS_NAME[SEM[c][1]]})`;
   }));
@@ -1584,7 +1705,7 @@ $("replayBtn").addEventListener("click", () => startPlayback(true));
 $("pauseBtn").addEventListener("click", () => {
   if (!player.playing) return;
   if (player.paused){ player.paused = false; S.kind === "morse" ? playMorseStep() : playSemStep(); }
-  else { player.paused = true; clearTimeout(player.timer); clearTimeout(player.flexTimer); if (player.semState.flex) setForeFlex("main", player.semState, 0, 120); signalOff(); }
+  else { player.paused = true; clearTimeout(player.timer); clearTimeout(player.flexTimer); clearTimeout(player.labelTimer); player.stepToken++; if (player.semState.flex) setForeFlex("main", player.semState, 0, 120); signalOff(); }
   setControls();
 });
 $("stopBtn").addEventListener("click", () => stopPlayback(true));
