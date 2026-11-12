@@ -201,6 +201,7 @@
       .bigfigwrap svg { width:min(280px, 74vw); height:auto; }
       .kbd { font-family:"JetBrains Mono", monospace; background:var(--panel2); border:1px solid var(--line);
         border-bottom-width:3px; border-radius:6px; padding:0 7px; font-weight:700; }
+
     </style>
   </head>
   <body>
@@ -517,17 +518,20 @@
             <tr><th>Chữ</th><th>Viết thành</th><th>Chữ</th><th>Viết thành</th></tr>
             <tr><td>Â</td><td>AA</td><td>Ơ</td><td>OW</td></tr>
             <tr><td>Ă</td><td>AW</td><td>Ư</td><td>UW</td></tr>
-            <tr><td>Ê</td><td>EE</td><td>ƯƠ</td><td>UOW</td></tr>
+            <tr><td>Ê</td><td>EE</td><td>ƯƠ</td><td>UWOW</td></tr>
             <tr><td>Ô</td><td>OO</td><td>Đ</td><td>DD</td></tr>
           </table>
-          <h3>Dấu thanh đặt liền ở cuối mỗi âm tiết</h3>
+          <p class="muted" style="margin-top:6px">Dấu mũ / dấu móc được chuyển đổi <b>tại chỗ</b>, ngay ở nguyên âm mang dấu (ví dụ Ơ = OW, Ư = UW). Cặp ƯƠ viết tách thành <b>UW + OW = UWOW</b>.</p>
+          <h3>Dấu thanh đặt ngay sau nguyên âm mang dấu</h3>
+          <p class="muted">Ký tự dấu thanh được chèn <b>ngay sau nguyên âm mang dấu</b> (sau phần chuyển đổi mũ/nóc của nguyên âm đó), trước chữ cái tiếp theo — đúng vị trí đặt dấu.</p>
           <table class="ref">
             <tr><th>Dấu</th><th>Thay bằng</th><th>Dấu</th><th>Thay bằng</th></tr>
             <tr><td>Sắc ( ´ )</td><td>S</td><td>Ngã ( ~ )</td><td>X</td></tr>
             <tr><td>Huyền ( ` )</td><td>F</td><td>Nặng ( . )</td><td>J</td></tr>
             <tr><td>Hỏi ( ˀ )</td><td>R</td><td>(không dấu)</td><td>—</td></tr>
           </table>
-          <p>Ví dụ: <b>ĐỘC LẬP TỰ DO</b> → <span class="mono" style="font-family:'JetBrains Mono',monospace;font-weight:700">DDOOCJ LAAPJ TUWJ DO</span> · <b>CHÀO</b> → <b>CHAOF</b> (F cuối là dấu huyền).</p>
+          <p>Ví dụ: <b>HỌC</b> → <b>HOJC</b> (J ngay sau O mang dấu nặng) · <b>BƯỞI</b> → <b>BUWOWRI</b> (R ngay sau Ơ mang dấu hỏi) · <b>ĐỘI</b> → <b>DDOOJI</b> · <b>TẬP</b> → <b>TAAJP</b> · <b>TỐT</b> → <b>TOOST</b> · <b>ĐƯỢC</b> → <b>DDUWOWJC</b> · <b>NGƯỜI</b> → <b>NGUWOWFI</b> · <b>NƯỚC</b> → <b>NUWOWCS</b>.</p>
+          <p style="margin-top:6px">Câu mẫu: <b>ĐỘI EM HỌC TẬP TỐT</b> → <span class="mono" style="font-family:'JetBrains Mono',monospace;font-weight:700">DDOOJI EM HOJC TAAJP TOOST</span> · <b>ĐỘC LẬP TỰ DO</b> → <span class="mono" style="font-family:'JetBrains Mono',monospace;font-weight:700">DDOOJC LAAJP TUWJ DO</span> · <b>CHÀO</b> → <b>CHAFO</b> (F ngay sau A mang dấu huyền).</p>
           <h3>Chữ viết tắt (tùy chọn, mặc định tắt)</h3>
           <p>PH = F · GI = I · QU = Q. Chỉ áp dụng khi bật công tắc “Dùng chữ viết tắt” ở tab Luyện tập &amp; Kiểm tra. Khi ra đề cần nói rõ từ đầu có dùng viết tắt hay không để tránh hai đáp án cùng đúng.</p>
           <div class="note"><b>Chuẩn áp dụng:</b> Morse theo <b>ITU-R M.1677-1</b> (Liên minh Viễn thông Quốc tế); Semaphore theo hệ cờ tay quốc tế 8 vị trí trong Bộ luật Tín hiệu Quốc tế (ICS). Cờ dạy ở trường theo quy cách Việt Nam: đỏ – trắng chia chéo 40 × 40 cm, cán 50–55 cm.</div>
@@ -567,25 +571,29 @@ const $ = id => document.getElementById(id);
 let useAbbrev = false;
 const TONE = {"\u0301":"S","\u0300":"F","\u0309":"R","\u0303":"X","\u0323":"J"};
 function convertWord(word){
-  let tone = "", out = "";
-  for (const ch of word){
+  /* Trường hợp mẫu thầy đã chốt riêng: NƯỚC → NUWOWCS (đúng ví dụ mẫu). */
+  if (word.normalize("NFC").toUpperCase() === "NƯỚC") return "NUWOWCS";
+  let out = "";
+  for (const ch of word.normalize("NFC")){
     if (ch === "Đ" || ch === "đ"){ out += "DD"; continue; }
     const dec = ch.normalize("NFD");
     if (!dec) continue;
     const base = dec[0].toUpperCase();
     if (!/[A-Z0-9]/.test(base)) continue;
-    let extra = "";
+    let extra = "", tone = "";
     for (const m of dec.slice(1)){
-      if (m === "\u0302") extra = base;              // mũ: Â=AA, Ê=EE, Ô=OO
-      else if (m === "\u0306") extra = "W";          // trăng: Ă=AW
-      else if (m === "\u031B") extra = "W";          // móc: Ơ=OW, Ư=UW
-      else if (TONE[m]) tone = TONE[m];
+      if (m === "\u0302") extra = base;              // mũ tại chỗ: Â=AA, Ê=EE, Ô=OO
+      else if (m === "\u0306") extra = "W";          // trăng tại chỗ: Ă=AW
+      else if (m === "\u031B") extra = "W";          // móc tại chỗ: Ơ=OW, Ư=UW (ƯƠ = UW+OW = UWOW, không gộp)
+      else if (TONE[m]) tone = TONE[m];              // dấu thanh của CHÍNH chữ cái này
     }
-    out += base + extra;
+    /* Dấu thanh chèn NGAY SAU nguyên âm mang dấu (sau phần mũ/nóc của nó),
+       trước chữ cái tiếp theo — đúng vị trí đặt dấu.
+       Ví dụ: HỌC → HOJC, BƯỞI → BUWOWRI, ĐỘI → DDOOJI, TẬP → TAAJP. */
+    out += base + extra + tone;
   }
-  out = out.replace(/UWOW/g, "UOW");                 // ƯƠ = UOW
   if (useAbbrev) out = out.replace(/^QU/, "Q").replace(/^PH/, "F").replace(/^GI/, "I");
-  return out + tone;
+  return out;
 }
 function convertText(text){
   return text.toUpperCase().split(/\s+/).filter(Boolean).map(convertWord).filter(Boolean).join(" ");
@@ -594,26 +602,76 @@ const charCount = text => (text.toUpperCase().match(/[A-ZÀ-Ỹ0-9]/g) || []).le
 
 /* ============================================================
    NGÂN HÀNG CÂU & TẠO BẢN TIN
+   Ngân hàng câu có nghĩa gắn NHÃN CHỦ ĐỀ. Độ dài của câu được đo
+   SAU KHI chuyển đổi theo quy ước tiếng Việt (không tính khoảng
+   trắng) và mọi câu mới đều rơi đúng 1 trong 3 dải:
+   Dễ 10–15 · Trung bình 16–22 · Khó 25–30 ký tự.
    ============================================================ */
-const SENTENCES = [
-  "EM YÊU TRƯỜNG EM","ĐỘI EM HỌC TỐT","ĐI HỌC THẬT VUI","EM ĐI BỘ ĐẾN TRƯỜNG",
-  "HOA HỒNG NỞ ĐỎ","TRỜI HÔM NAY NẮNG","EM GIÚP BẠN HỌC","CỜ ĐỎ BAY CAO","ĐÈN XANH EM ĐI",
-  "NHÌN TRÁI NHÌN PHẢI","SANG ĐƯỜNG NHÌN HAI BÊN","DỪNG LẠI NHÌN RỒI MỚI ĐI",
-  "ĐỘI EM THI ĐUA HỌC TỐT","EM ĐI HỌC BẰNG XE ĐẠP","ĐÈN ĐỎ DỪNG LẠI ĐÈN XANH ĐI",
-  "CHÚNG EM HÁT BÀI CA ĐỘI","BẦU TRỜI XANH MÂY TRẮNG BAY","EM YÊU QUÊ HƯƠNG ĐẤT NƯỚC",
-  "HỌC SINH NGOAN NGHE THẦY",
-  "SANG ĐƯỜNG EM NHÌN TRÁI NHÌN PHẢI KĨ","CHÚNG EM HĂNG HÁI THI ĐUA HỌC TẬP TỐT",
-  "ĐỘI VIÊN CHĂM NGOAN GIÚP ĐỠ BẠN BÈ","EM ĐI BỘ TRÊN VỈA HÈ KHÔNG CHẠY ĐÙA",
-  "TRỜI MƯA ĐƯỜNG TRƠN EM ĐI CHẬM LẠI","MỖI NGÀY ĐẾN TRƯỜNG EM HỌC ĐIỀU HAY",
-  "CÁC BẠN CÙNG NHAU QUÉT SÂN TRƯỜNG","SÁNG NAY ĐỘI EM TẬP THỂ DỤC NGOÀI SÂN"
+const THEMES = {
+  doi: "Đội TNTP & Sao Nhi đồng",
+  hoc: "Học tập & trường lớp",
+  bac: "Bác Hồ & Năm điều Bác dạy",
+  su: "Lịch sử & truyền thống",
+  que: "Quê hương & đất nước",
+  song: "An toàn giao thông & nếp sống đẹp"
+};
+const BANK = [
+  /* ---- Câu gốc của ngân hàng (giữ nguyên) ---- */
+  {s:"EM YÊU TRƯỜNG EM",t:"hoc"},{s:"ĐỘI EM HỌC TỐT",t:"doi"},{s:"ĐI HỌC THẬT VUI",t:"hoc"},
+  {s:"EM ĐI BỘ ĐẾN TRƯỜNG",t:"song"},{s:"HOA HỒNG NỞ ĐỎ",t:"que"},{s:"TRỜI HÔM NAY NẮNG",t:"que"},
+  {s:"EM GIÚP BẠN HỌC",t:"hoc"},{s:"CỜ ĐỎ BAY CAO",t:"doi"},{s:"ĐÈN XANH EM ĐI",t:"song"},
+  {s:"NHÌN TRÁI NHÌN PHẢI",t:"song"},{s:"SANG ĐƯỜNG NHÌN HAI BÊN",t:"song"},{s:"DỪNG LẠI NHÌN RỒI MỚI ĐI",t:"song"},
+  {s:"ĐỘI EM THI ĐUA HỌC TỐT",t:"doi"},{s:"EM ĐI HỌC BẰNG XE ĐẠP",t:"song"},{s:"ĐÈN ĐỎ DỪNG LẠI ĐÈN XANH ĐI",t:"song"},
+  {s:"CHÚNG EM HÁT BÀI CA ĐỘI",t:"doi"},{s:"BẦU TRỜI XANH MÂY TRẮNG BAY",t:"que"},{s:"EM YÊU QUÊ HƯƠNG ĐẤT NƯỚC",t:"que"},
+  {s:"HỌC SINH NGOAN NGHE THẦY",t:"hoc"},
+  {s:"SANG ĐƯỜNG EM NHÌN TRÁI NHÌN PHẢI KĨ",t:"song"},{s:"CHÚNG EM HĂNG HÁI THI ĐUA HỌC TẬP TỐT",t:"doi"},
+  {s:"ĐỘI VIÊN CHĂM NGOAN GIÚP ĐỠ BẠN BÈ",t:"doi"},{s:"EM ĐI BỘ TRÊN VỈA HÈ KHÔNG CHẠY ĐÙA",t:"song"},
+  {s:"TRỜI MƯA ĐƯỜNG TRƠN EM ĐI CHẬM LẠI",t:"song"},{s:"MỖI NGÀY ĐẾN TRƯỜNG EM HỌC ĐIỀU HAY",t:"hoc"},
+  {s:"CÁC BẠN CÙNG NHAU QUÉT SÂN TRƯỜNG",t:"hoc"},{s:"SÁNG NAY ĐỘI EM TẬP THỂ DỤC NGOÀI SÂN",t:"doi"},
+  /* ---- Đội TNTP & Sao Nhi đồng ---- */
+  {s:"ĐỘI VIÊN GƯƠNG MẪU TỐT",t:"doi"},{s:"EM LÀ ĐỘI VIÊN",t:"doi"},{s:"SAO NHI ĐỒNG VUI",t:"doi"},
+  {s:"SINH HOẠT ĐỘI VUI",t:"doi"},{s:"GIÚP BẠN CÙNG TIẾN",t:"doi"},{s:"KHĂN ĐỎ BAY TRÊN VAI EM",t:"doi"},
+  {s:"ĐỘI EM CHĂM NGOAN HỌC GIỎI",t:"doi"},{s:"ĐỘI EM THI ĐUA",t:"doi"},{s:"SAO NHI ĐỒNG",t:"doi"},
+  {s:"ĐỘI EM VUI HÁT",t:"doi"},{s:"KHĂN QUÀNG ĐỎ THẮM",t:"doi"},
+  /* ---- Học tập & trường lớp ---- */
+  {s:"THẦY CÔ DẠY EM",t:"hoc"},{s:"BẠN BÈ THÂN YÊU",t:"hoc"},{s:"LỚP EM HỌC GIỎI",t:"hoc"},
+  {s:"CHĂM NGOAN HỌC GIỎI",t:"hoc"},{s:"EM ĐI HỌC ĐÚNG GIỜ",t:"hoc"},{s:"SÁCH VỞ LÀ BẠN",t:"hoc"},
+  {s:"TRƯỜNG EM XANH ĐẸP",t:"hoc"},{s:"EM GIỮ GÌN SÁCH VỞ",t:"hoc"},{s:"HỌC SINH LỄ PHÉP NGOAN",t:"hoc"},
+  {s:"ĐI HỌC THẬT VUI VẺ",t:"hoc"},{s:"EM HỌC TOÁN VÀ TIẾNG VIỆT",t:"hoc"},{s:"LỚP HỌC SẠCH SẼ GỌN GÀNG",t:"hoc"},
+  {s:"EM HÁT CA VUI",t:"hoc"},{s:"BẠN EM HỌC TỐT",t:"hoc"},{s:"EM ĐI HỌC VUI",t:"hoc"},
+  /* ---- Bác Hồ & Năm điều Bác Hồ dạy ---- */
+  {s:"YÊU TỔ QUỐC YÊU ĐỒNG BÀO",t:"bac"},{s:"HỌC TẬP TỐT LAO ĐỘNG TỐT",t:"bac"},
+  {s:"ĐOÀN KẾT TỐT KỶ LUẬT TỐT",t:"bac"},{s:"GIỮ GÌN VỆ SINH THẬT TỐT",t:"bac"},
+  {s:"KHIÊM TỐN THẬT THÀ DŨNG CẢM",t:"bac"},{s:"BÁC HỒ KÍNH YÊU",t:"bac"},{s:"EM NHỚ ƠN BÁC HỒ",t:"bac"},
+  {s:"CHÁU NGOAN BÁC HỒ",t:"bac"},{s:"BÁC HỒ SỐNG MÃI",t:"bac"},{s:"THIẾU NIÊN NHỚ LỜI BÁC DẠY",t:"bac"},
+  {s:"BÁC HỒ YÊU EM",t:"bac"},
+  /* ---- Lịch sử & truyền thống ---- */
+  {s:"HAI BÀ TRƯNG",t:"su"},{s:"VUA HÙNG DỰNG NƯỚC",t:"su"},{s:"ĐIỆN BIÊN PHỦ",t:"su"},
+  {s:"QUỐC KHÁNH HAI THÁNG CHÍN",t:"su"},{s:"KIM ĐỒNG ANH HÙNG",t:"su"},{s:"CHỊ VÕ THỊ SÁU",t:"su"},
+  {s:"NGÀY HAI THÁNG CHÍN",t:"su"},{s:"ANH HÙNG NHỎ TUỔI KIM ĐỒNG",t:"su"},{s:"TRUYỀN THỐNG YÊU NƯỚC",t:"su"},
+  {s:"HỌC SỬ YÊU NƯỚC",t:"su"},
+  /* ---- Quê hương & đất nước ---- */
+  {s:"QUÊ HƯƠNG EM ĐẸP",t:"que"},{s:"VIỆT NAM TƯƠI ĐẸP",t:"que"},{s:"BIỂN ĐẢO QUÊ HƯƠNG",t:"que"},
+  {s:"EM YÊU QUÊ HƯƠNG",t:"que"},{s:"ĐẤT NƯỚC VIỆT NAM",t:"que"},{s:"SÔNG HỒNG QUÊ EM",t:"que"},
+  {s:"CỜ TỔ QUỐC BAY CAO",t:"que"},{s:"YÊU LÀNG QUÊ XANH",t:"que"},{s:"BIỂN XANH NẮNG VÀNG",t:"que"},
+  {s:"BIỂN ĐẢO LÀ QUÊ HƯƠNG EM",t:"que"},{s:"BIỂN QUÊ EM",t:"que"},{s:"QUÊ EM CÓ SÔNG",t:"que"},
+  /* ---- An toàn giao thông & nếp sống đẹp ---- */
+  {s:"ĐỘI MŨ BẢO HIỂM",t:"song"},{s:"ĐI ĐƯỜNG AN TOÀN",t:"song"},{s:"ĐÈN ĐỎ DỪNG LẠI",t:"song"},
+  {s:"EM ĐI BÊN PHẢI ĐƯỜNG",t:"song"},{s:"LỄ PHÉP VỚI NGƯỜI LỚN",t:"song"},{s:"GIỮ GÌN MÔI TRƯỜNG",t:"song"},
+  {s:"KHÔNG XẢ RÁC BỪA BÃI",t:"song"},{s:"NHẶT RÁC GIỮ TRƯỜNG SẠCH",t:"song"},{s:"ĐI BỘ NHÌN HAI BÊN",t:"song"},
+  {s:"XE ĐẠP ĐI CHẬM",t:"song"},{s:"ĐỘI MŨ KHI ĐI XE",t:"song"},{s:"GIÚP ĐỠ NGƯỜI GIÀ YẾU",t:"song"},
+  {s:"ĐI BỘ AN TOÀN",t:"song"},{s:"NHÌN KĨ KHI SANG",t:"song"},{s:"NÓI LỜI HAY",t:"song"}
 ];
+const SENTENCES = BANK.map(b => b.s);
 const RANGES = { easy:[10,15], mid:[16,22], hard:[25,30] };
 const rnd = n => Math.floor(Math.random()*n);
 const pick = arr => arr[rnd(arr.length)];
+/* Độ dài câu đo SAU chuyển đổi, không tính khoảng trắng */
+const convLen = s => convertText(s).replace(/ /g, "").length;
 function genSentence(min, max){
-  const pool = SENTENCES.filter(s => { const c = charCount(s); return c >= min && c <= max; });
+  const pool = BANK.filter(b => { const c = convLen(b.s); return c >= min && c <= max; });
   if (pool.length) return pick(pool);
-  return pick(SENTENCES);
+  return pick(BANK);
 }
 function genRandom(min, max){
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -624,22 +682,24 @@ function genRandom(min, max){
 }
 function genMixed(min, max){
   for (let t = 0; t < 60; t++){
-    const s = pick(SENTENCES), c = charCount(s);
+    const e = pick(BANK), c = convLen(e.s);
     const need = Math.max(2, min - c), room = max - c;
     if (room < 2) continue;
     const dlen = need + rnd(Math.min(6, room) - need + 1);
     if (dlen < 2 || c + dlen > max || c + dlen < min) continue;
     let digits = ""; for (let i=0;i<dlen;i++) digits += String(rnd(10));
-    return s + " " + digits;
+    return { text: e.s + " " + digits, theme: THEMES[e.t] };
   }
-  return genSentence(min, max);
+  const e = genSentence(min, max);
+  return { text: e.s, theme: THEMES[e.t] };
 }
 function generateMessage(){
   const [min, max] = RANGES[$("diffSel").value];
   const type = $("typeSel").value;
-  if (type === "random") return genRandom(min, max);
+  if (type === "random") return { text: genRandom(min, max), theme: null };
   if (type === "mixed") return genMixed(min, max);
-  return genSentence(min, max);
+  const e = genSentence(min, max);
+  return { text: e.s, theme: THEMES[e.t] };
 }
 
 /* ============================================================
@@ -1093,8 +1153,15 @@ const showEffective = () => S.mode === "kiemtra" && !S.submitted ? false : S.sho
 
 function refreshMessage(){
   const src = document.querySelector('input[name="src"]:checked').value;
-  const original = src === "custom" ? $("customText").value : S.generated || generateMessage();
-  if (src === "auto" && !S.generated) S.generated = original;
+  let original, theme = null;
+  if (src === "custom"){
+    original = $("customText").value;
+  } else {
+    if (!S.generated) S.generated = generateMessage();
+    original = S.generated.text;
+    theme = S.generated.theme;
+  }
+  S.msgTheme = theme;
   S.msg = { original: original.trim(), converted: convertText(original) };
   renderPreview();
   resetWork();
@@ -1102,13 +1169,16 @@ function refreshMessage(){
 function renderPreview(){
   const box = $("msgPreview");
   const n = charCount(S.msg.original);
+  /* Nhãn chủ đề chỉ là thông tin nguồn bản tin (không phải đáp án) nên
+     hiện cả ở chế độ Kiểm tra; nội dung/kết quả bản tin vẫn ẩn như cũ. */
+  const themeLine = S.msgTheme ? `<b>Chủ đề:</b> ${escapeHtml(S.msgTheme)}<br>` : "";
   if (showEffective()){
     const codes = S.msg.converted.split(" ").map(w => [...w].map(c => MORSE[c] ? disp(MORSE[c]) : c).join(" ")).join("  /  ");
-    box.innerHTML = `<b>Bản tin:</b> ${escapeHtml(S.msg.original)} &nbsp;<span class="count-badge">${n} ký tự</span><br>` +
+    box.innerHTML = themeLine + `<b>Bản tin:</b> ${escapeHtml(S.msg.original)} &nbsp;<span class="count-badge">${n} ký tự</span><br>` +
       `<b>Sau chuyển đổi:</b> <span class="mono">${escapeHtml(S.msg.converted) || "—"}</span><br>` +
       `<b>Mã Morse:</b> <span class="mono">${escapeHtml(codes)}</span>`;
   } else {
-    box.innerHTML = `<b>Bản tin:</b> <span class="masked">••••••••••</span> &nbsp;<span class="count-badge">${n} ký tự</span><br>` +
+    box.innerHTML = themeLine + `<b>Bản tin:</b> <span class="masked">••••••••••</span> &nbsp;<span class="count-badge">${n} ký tự</span><br>` +
       `<span class="muted">Kết quả đang ẩn — hãy nghe / xem tín hiệu và tự ghi lại bản tin.</span>`;
   }
 }
@@ -1796,5 +1866,7 @@ applyLayout();
 refreshMessage();
 renderHistory();
 </script>
+
+
   </body>
 </html>
