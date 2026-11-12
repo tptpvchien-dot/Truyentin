@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <title>Luyện truyền tin Morse &amp; Semaphore</title>
+    <!-- Tiếng còi Morse: theo mẫu còi chuẩn thầy gửi — một cao độ 1613 Hz, hài 0,035 / 0,028, attack 9 ms, release 12 ms. Trang tĩnh này không có đăng nhập / quản trị / tài khoản thành viên; phần tài khoản nằm ở bản máy chủ riêng. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
@@ -323,7 +324,7 @@
               <span class="ch" id="nowChar"></span>
               <span class="code" id="nowCode"></span>
             </div>
-            <p class="muted" style="margin-top:4px"><b>Tiếng còi trong, một cao độ duy nhất: tích và te cùng cao độ, chỉ khác độ dài</b> — tích ngắn gọn, te dài đều. Đèn sáng đúng theo độ dài tín hiệu.</p>
+            <p class="muted" style="margin-top:4px"><b>Tiếng còi theo mẫu còi chuẩn (một cao độ 1613 Hz)</b> — tích và te cùng cao độ, chỉ khác độ dài: tích ngắn gọn, te dài đều. Đèn sáng đúng theo độ dài tín hiệu.</p>
           </div>
 
           <!-- Semaphore stage -->
@@ -450,7 +451,7 @@
       <section id="tab-morse" role="tabpanel" aria-labelledby="tabbtn-morse" class="hidden">
         <div class="panel">
           <h2>Bảng mã Morse quốc tế (ITU-R M.1677-1)</h2>
-          <p class="muted">Bấm vào một chữ để nghe tiếng Morse của chữ đó. Nhịp chuẩn: chấm 1 đơn vị, gạch 3 đơn vị, nghỉ trong chữ 1, giữa chữ 3, giữa từ 7. <b>Tiếng còi trong, một cao độ duy nhất: tích và te cùng cao độ, chỉ khác độ dài — tích ngắn gọn, te dài đều.</b></p>
+          <p class="muted">Bấm vào một chữ để nghe tiếng Morse của chữ đó. Nhịp chuẩn: chấm 1 đơn vị, gạch 3 đơn vị, nghỉ trong chữ 1, giữa chữ 3, giữa từ 7. <b>Tiếng còi theo mẫu còi chuẩn (một cao độ 1613 Hz): tích và te cùng cao độ, chỉ khác độ dài — tích ngắn gọn, te dài đều.</b></p>
           <div class="nowchar" style="margin:10px 0" aria-live="polite">
             <span class="ch" id="tableNowChar">—</span>
             <span class="code" id="tableNowCode">Bấm một chữ bất kỳ…</span>
@@ -489,11 +490,16 @@
           <table class="ref">
             <tr><th>Tín hiệu</th><th>Cặp vị trí</th><th>Ý nghĩa</th></tr>
             <tr><td>Nghỉ / cách từ</td><td>0 + 0</td><td>Hai cờ buông xuống, nghỉ 2–3 giây</td></tr>
-            <tr><td>Báo số</td><td>4 + 5</td><td>Sau tín hiệu này: A=1, B=2, …, I=9, <b>K=0</b></td></tr>
-            <tr><td>Báo chữ (chữ J)</td><td>4 + 6</td><td>Quay lại đánh chữ sau khi đánh số</td></tr>
+            <tr><td>Báo số / Báo chữ (chuyển số–chữ)</td><td>4 + 5</td><td><b>Một tín hiệu dùng chung cho cả hai chiều:</b> đánh trước nhóm số để chuyển sang chế độ số; đánh lại sau nhóm số để quay về chế độ chữ. Hình này ngược gương với chữ T (T là 3 + 4): một tay ở vị trí 4 (vị trí tay di chuyển của chữ D), một tay ở vị trí 5 (vị trí tay di chuyển của chữ E). Trong chế độ số: A=1, B=2, …, I=9, <b>J=0</b></td></tr>
+            <tr><td>Số 0 (chữ J)</td><td>4 + 6</td><td>Trong chế độ số, số 0 đánh bằng chữ J (cặp 4 + 6)</td></tr>
             <tr><td>Huỷ / xoá</td><td>3 + 7</td><td>Xoá nội dung vừa đánh (ngược vị trí chữ L)</td></tr>
           </table>
-          <div class="note"><b>Lưu ý quan trọng:</b> số 0 trong Semaphore là chữ <b>K</b> (sau tín hiệu Báo số), <b>không phải J</b> — J là tín hiệu Báo chữ. Một số tài liệu lưu hành trên mạng ghi “J = 0” là sai theo chuẩn quốc tế.</div>
+          <h3>Bảng số trong chế độ số</h3>
+          <table class="ref">
+            <tr><th>Chữ đánh</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th></tr>
+            <tr><th>Là số</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td><b>0</b></td></tr>
+          </table>
+          <div class="note"><b>Quy ước của lớp đang học:</b> trong chế độ số, số 0 là chữ <b>J</b> (cặp vị trí 4 + 6), và chuyển qua lại giữa chữ và số dùng <b>chung một tín hiệu 4 + 5</b> cho cả hai chiều. Toàn bộ ứng dụng (phát tin, chấm bài, bảng tra) đều theo quy ước này.</div>
           <h3>Cách học theo 7 vòng</h3>
           <table class="ref">
             <tr><th>Vòng</th><th>Nội dung</th></tr>
@@ -501,7 +507,7 @@
             <tr><td>2</td><td>H, I, K, L, M, N: tay trụ ở vị trí A (1), tay kia đi 2 → 7</td></tr>
             <tr><td>3</td><td>O, P, Q, R, S: tay trụ ở vị trí B (2), tay kia đi 3 → 7</td></tr>
             <tr><td>4</td><td>T, U, Y: tay trụ ở vị trí C (3), tay kia đi 4, 5, 6 (cặp 3+7 là tín hiệu Huỷ)</td></tr>
-            <tr><td>5</td><td>Tay trụ ở vị trí D (4): 4+5 Báo số, 4+6 = J / Báo chữ, 4+7 = V</td></tr>
+            <tr><td>5</td><td>Tay trụ ở vị trí D (4): 4+5 = tín hiệu chuyển số–chữ (dùng chung hai chiều), 4+6 = J (trong chế độ số là số 0), 4+7 = V</td></tr>
             <tr><td>6</td><td>W (5+6), X (5+7)</td></tr>
             <tr><td>7</td><td>Z (6+7)</td></tr>
           </table>
@@ -534,7 +540,9 @@
           <p style="margin-top:6px">Câu mẫu: <b>ĐỘI EM HỌC TẬP TỐT</b> → <span class="mono" style="font-family:'JetBrains Mono',monospace;font-weight:700">DDOOJI EM HOJC TAAJP TOOST</span> · <b>ĐỘC LẬP TỰ DO</b> → <span class="mono" style="font-family:'JetBrains Mono',monospace;font-weight:700">DDOOJC LAAJP TUWJ DO</span> · <b>CHÀO</b> → <b>CHAFO</b> (F ngay sau A mang dấu huyền).</p>
           <h3>Chữ viết tắt (tùy chọn, mặc định tắt)</h3>
           <p>PH = F · GI = I · QU = Q. Chỉ áp dụng khi bật công tắc “Dùng chữ viết tắt” ở tab Luyện tập &amp; Kiểm tra. Khi ra đề cần nói rõ từ đầu có dùng viết tắt hay không để tránh hai đáp án cùng đúng.</p>
-          <div class="note"><b>Chuẩn áp dụng:</b> Morse theo <b>ITU-R M.1677-1</b> (Liên minh Viễn thông Quốc tế); Semaphore theo hệ cờ tay quốc tế 8 vị trí trong Bộ luật Tín hiệu Quốc tế (ICS). Cờ dạy ở trường theo quy cách Việt Nam: đỏ – trắng chia chéo 40 × 40 cm, cán 50–55 cm.</div>
+          <h3>Semaphore — quy ước số của lớp</h3>
+          <p>Trong chế độ số: <b>A = 1, B = 2, C = 3, D = 4, E = 5, F = 6, G = 7, H = 8, I = 9, J = 0</b> — số 0 đánh bằng chữ <b>J</b> (cặp vị trí 4 + 6). Chuyển qua lại giữa chế độ chữ và chế độ số dùng <b>chung một tín hiệu chuyển số–chữ 4 + 5</b> cho cả hai chiều: đánh 4 + 5 trước nhóm số để sang số, đánh lại 4 + 5 sau nhóm số để về chữ. Tín hiệu 4 + 5 là hình ngược gương của chữ T (T là 3 + 4): một tay ở vị trí 4 như tay di chuyển của chữ D, một tay ở vị trí 5 như tay di chuyển của chữ E. Đây là quy ước lớp đang học; ứng dụng mã hoá, phát tin và chấm bài đều theo đúng quy ước này (số trong Morse không đổi: 0 = −−−−−).</p>
+          <div class="note"><b>Chuẩn áp dụng:</b> Morse theo <b>ITU-R M.1677-1</b> (Liên minh Viễn thông Quốc tế); Semaphore theo hệ cờ tay quốc tế 8 vị trí trong Bộ luật Tín hiệu Quốc tế (ICS), riêng quy ước số theo quy ước của lớp ở mục trên. Cờ dạy ở trường theo quy cách Việt Nam: đỏ – trắng chia chéo 40 × 40 cm, cán 50–55 cm.</div>
         </div>
 
         <div class="panel">
@@ -554,11 +562,13 @@
    DỮ LIỆU CHUẨN
    Morse: ITU-R M.1677-1 · Semaphore: hệ 8 vị trí, góc nhìn người nhận
    ============================================================ */
-const MORSE = {A:".-",B:"-...",C:"-.-.",D:"-..",E:".",F:"..-.",G:"--.",H:"....",I:"..",J:".---",K:"-.-",L:".-..",M:"--",N:"-.",O:"---",P:".--.",Q:"--.-",R:".-",S:"...",T:"-",U:"..-",V:"...-",W:".--",X:"-..-",Y:"-.--",Z:"--..",
+const MORSE = {A:".-",B:"-...",C:"-.-.",D:"-..",E:".",F:"..-.",G:"--.",H:"....",I:"..",J:".---",K:"-.-",L:".-..",M:"--",N:"-.",O:"---",P:".--.",Q:"--.-",R:".-.",S:"...",T:"-",U:"..-",V:"...-",W:".--",X:"-..-",Y:"-.--",Z:"--..",
   "1":".----","2":"..---","3":"...--","4":"....-","5":".....","6":"-....","7":"--...","8":"---..","9":"----.","0":"-----"};
 const SEM = {A:[0,1],B:[0,2],C:[0,3],D:[0,4],E:[0,5],F:[0,6],G:[0,7],H:[1,2],I:[1,3],K:[1,4],L:[1,5],M:[1,6],N:[1,7],O:[2,3],P:[2,4],Q:[2,5],R:[2,6],S:[2,7],T:[3,4],U:[3,5],Y:[3,6],V:[4,7],J:[4,6],W:[5,6],X:[5,7],Z:[6,7]};
+/* SEM_NUM: tín hiệu chuyển số–chữ 4+5, dùng chung cho cả hai chiều
+   (sang số và về chữ). Trong chế độ số: A=1 … I=9, J=0 (xem DIG2LET). */
 const SEM_NUM = [4,5], SEM_REST = [0,0];
-const DIG2LET = {"1":"A","2":"B","3":"C","4":"D","5":"E","6":"F","7":"G","8":"H","9":"I","0":"K"};
+const DIG2LET = {"1":"A","2":"B","3":"C","4":"D","5":"E","6":"F","7":"G","8":"H","9":"I","0":"J"};
 const POS_NAME = {0:"thẳng xuống",1:"chéo xuống-trái",2:"ngang trái",3:"chéo lên-trái",4:"thẳng lên",5:"chéo lên-phải",6:"ngang phải",7:"chéo xuống-phải"};
 const POS_ARROW = {0:"↓",1:"↙",2:"←",3:"↖",4:"↑",5:"↗",6:"→",7:"↘"};
 
@@ -1094,17 +1104,20 @@ function setFigure(prefix, pair, state, holdMs){
   return 0;
 }
 
-/* Chuỗi bước semaphore cho 1 bản tin đã chuyển đổi (tự chèn Báo số / Báo chữ) */
+/* Chuỗi bước semaphore cho 1 bản tin đã chuyển đổi.
+   QUY ƯỚC SỐ CỦA LỚP: chế độ số A=1 … I=9, J=0. Chuyển chế độ dùng CHUNG
+   MỘT tín hiệu 4+5 cho cả hai chiều (sang số và quay lại chữ đều 4+5) —
+   hình ngược gương của chữ T (3+4). */
 function buildSemSteps(converted){
   const steps = [];
   let numMode = false;
   converted.split(" ").forEach((word, wi, arr) => {
     [...word].forEach(ch => {
       if (/\d/.test(ch)){
-        if (!numMode){ steps.push({type:"num", pair:SEM_NUM, label:"Báo số"}); numMode = true; }
+        if (!numMode){ steps.push({type:"num", pair:SEM_NUM, label:"Báo số / Báo chữ (4+5)"}); numMode = true; }
         steps.push({type:"char", ch, pair:SEM[DIG2LET[ch]], digit:true});
       } else if (SEM[ch]){
-        if (numMode){ steps.push({type:"alpha", pair:SEM.J, label:"Báo chữ"}); numMode = false; }
+        if (numMode){ steps.push({type:"alpha", pair:SEM_NUM, label:"Báo số / Báo chữ (4+5)"}); numMode = false; }
         steps.push({type:"char", ch, pair:SEM[ch]});
       }
     });
@@ -1185,46 +1198,58 @@ function renderPreview(){
 function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* ============================================================
-   ÂM THANH MORSE — TIẾNG CÒI TRONG, MỘT CAO ĐỘ DUY NHẤT:
-   tích và te CÙNG một cao độ trong (2150 Hz), CHỈ khác độ dài
+   ÂM THANH MORSE — TIẾNG CÒI THEO MẪU CÒI CHUẨN THẦY GỬI:
+   tích và te CÙNG một cao độ (1613 Hz), CHỈ khác độ dài
    (1 vs 3 đơn vị) như còi thật — người thổi giữ nguyên ống còi,
-   chỉ ngắt hơi ngắn hay dài.
-   Âm sắc SẠCH, không rè: đúng MỘT oscillator sine thuần ở tần số
-   cơ bản + MỘT hài bậc 2 rất nhỏ (gain 0.05 ≈ −26 dB) để tiếng
-   bớt "điện tử". KHÔNG detune/phách, KHÔNG hài cao, KHÔNG răng
-   cưa, KHÔNG tạp âm hơi, KHÔNG rung, KHÔNG chao/trượt tần,
-   KHÔNG compressor. Tần số đặt cố định một lần lúc khởi tạo và
-   chỉ đổi khi bật công tắc hỗ trợ bước đầu (mặc định TẮT);
-   hai cao độ hỗ trợ cũng dùng đúng âm sắc trong này.
-   Bao hình mượt: attack ~10ms, release ~14ms (tích) / ~18ms
-   (te) — ngắt gọn nhưng sạch, không click, không bụp.
+   chỉ ngắt hơi ngắn hay dài. Thông số đo từ file mẫu (FFT):
+   cao độ cơ bản 1613 Hz ổn định ±2 Hz; âm sắc gần sine thuần
+   nhưng đầy hơn một chút nhờ hài bậc 2 và bậc 3 rất nhỏ.
+   Bộ phát = 3 dao động sine CÙNG PHA qua một bao hình chung:
+   cơ bản 1613 Hz (gain 1), hài 2 ở 3226 Hz (gain 0.035),
+   hài 3 ở 4839 Hz (gain 0.028); hài bậc 4 trở lên bỏ qua.
+   KHÔNG tạp âm hơi, KHÔNG detune/chùm hợp âm, KHÔNG rung tần
+   số, KHÔNG chao/trượt tần, KHÔNG compressor.
+   Bao hình chung: attack tuyến tính 0 → 1 trong 9 ms, giữ
+   nguyên mức trong thân tiếng, release tuyến tính về 0
+   trong 12 ms ở cuối — ngắt gọn nhưng sạch, không click.
+   Tần số đặt cố định và chỉ đổi khi bật công tắc hỗ trợ
+   bước đầu (mặc định TẮT); hai cao độ hỗ trợ cũng xây bằng
+   đúng công thức âm sắc này (sine + hài 0,035 / 0,028).
    Khoảng lặng giữa các tín hiệu là lặng hoàn toàn.
    ============================================================ */
-const WHISTLE_F = 2150;
+const WHISTLE_F = 1613;
+const HARM2_GAIN = 0.035;
+const HARM3_GAIN = 0.028;
 const AID_DOT = 2200, AID_DASH = 1500;
 let aidPitch = false;
-let AC = null, whistleGain = null, toneOsc = null, harmOsc = null, harmGain = null;
+let AC = null, whistleGain = null, toneOsc = null, harmOsc = null, harmGain = null, harm3Osc = null, harm3Gain = null;
 function audioInit(){
   if (AC) { if (AC.state === "suspended") AC.resume(); return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     whistleGain = AC.createGain(); whistleGain.gain.value = 0;
     whistleGain.connect(AC.destination);
-    /* Âm cơ bản: 1 sine thuần duy nhất, tần số cố định */
+    const t0 = AC.currentTime;
+    /* Âm cơ bản: sine tại 1613 Hz, gain tương đối 1 */
     toneOsc = AC.createOscillator(); toneOsc.type = "sine"; toneOsc.frequency.value = WHISTLE_F;
-    toneOsc.connect(whistleGain); toneOsc.start();
-    /* Hài bậc 2 rất nhỏ (−26 dB) đi qua gain riêng vào cùng đầu ra */
+    toneOsc.connect(whistleGain); toneOsc.start(t0);
+    /* Hài bậc 2: sine tại 3226 Hz, gain tương đối 0,035 (≈ −29 dB), cùng pha, cùng thời điểm bắt đầu */
     harmOsc = AC.createOscillator(); harmOsc.type = "sine"; harmOsc.frequency.value = WHISTLE_F * 2;
-    harmGain = AC.createGain(); harmGain.gain.value = 0.05;
-    harmOsc.connect(harmGain); harmGain.connect(whistleGain); harmOsc.start();
+    harmGain = AC.createGain(); harmGain.gain.value = HARM2_GAIN;
+    harmOsc.connect(harmGain); harmGain.connect(whistleGain); harmOsc.start(t0);
+    /* Hài bậc 3: sine tại 4839 Hz, gain tương đối 0,028 (≈ −31 dB), cùng pha, cùng thời điểm bắt đầu */
+    harm3Osc = AC.createOscillator(); harm3Osc.type = "sine"; harm3Osc.frequency.value = WHISTLE_F * 3;
+    harm3Gain = AC.createGain(); harm3Gain.gain.value = HARM3_GAIN;
+    harm3Osc.connect(harm3Gain); harm3Gain.connect(whistleGain); harm3Osc.start(t0);
   } catch(e){ AC = null; }
 }
 function baseFreq(isDash){ return aidPitch ? (isDash ? AID_DASH : AID_DOT) : WHISTLE_F; }
 function setToneFreq(freq){
   if (!toneOsc) return;
-  /* Đặt thẳng tần số đích, không ramp, không chao tần */
+  /* Đặt thẳng tần số đích cho cả 3 dao động cùng pha, không ramp, không chao tần */
   toneOsc.frequency.value = freq;
   if (harmOsc) harmOsc.frequency.value = freq * 2;
+  if (harm3Osc) harm3Osc.frequency.value = freq * 3;
 }
 function beep(on, isDash){
   if (!AC) return;
@@ -1235,11 +1260,11 @@ function beep(on, isDash){
   g.setValueAtTime(g.value, t);
   if (on){
     setToneFreq(baseFreq(isDash));
-    /* Attack mượt ~10ms cho cả tích và te, thân âm đều và ổn định */
-    g.linearRampToValueAtTime(0.22, t + 0.010);
+    /* Attack tuyến tính mượt 0 → mức ổn định trong 9 ms (theo mẫu còi chuẩn) */
+    g.linearRampToValueAtTime(0.22, t + 0.009);
   } else {
-    /* Ngắt sạch: tích gọn hơn (~14ms), te mềm hơn một chút (~18ms), không click */
-    g.setTargetAtTime(0, t, isDash ? 0.018 : 0.014);
+    /* Release tuyến tính về 0 trong 12 ms ở cuối tiếng, tắt hẳn, không click */
+    g.linearRampToValueAtTime(0, t + 0.012);
   }
 }
 function setLamp(lampEl, on){
@@ -1534,10 +1559,10 @@ function renderSendSem(){
   setProgress(Math.max(0, curCharNo - 1), sendS.total);
   if (S.mode === "luyen"){
     if (st.type === "char") { $("semStepLabel").textContent = `Ký tự ${curCharNo} / ${sendS.total}: chữ “${st.ch}”`; $("semStepHint").textContent = st.digit ? "(chữ số — đánh theo vị trí của chữ " + DIG2LET[st.ch] + ")" : ""; }
-    else { $("semStepLabel").textContent = `Tín hiệu: ${st.label}`; $("semStepHint").textContent = st.type === "num" ? "(sau đó A=1 … I=9, K=0)" : "(quay lại đánh chữ)"; }
+    else { $("semStepLabel").textContent = `Tín hiệu: ${st.label}`; $("semStepHint").textContent = st.type === "num" ? "(tín hiệu chuyển số–chữ 4+5: sau đó A=1 … I=9, J=0)" : "(tín hiệu chuyển số–chữ 4+5: quay lại đánh chữ)"; }
   } else {
     $("semStepLabel").textContent = `Bước ${sendS.idx + 1} / ${sendS.steps.length}`;
-    $("semStepHint").textContent = "(có thể là ký tự hoặc tín hiệu Báo số / Báo chữ)";
+    $("semStepHint").textContent = "(có thể là ký tự hoặc tín hiệu chuyển số–chữ 4+5)";
   }
   const prev = sendS.idx > 0 ? sendS.stepResults[sendS.idx - 1] : null;
   if (S.mode === "luyen" && prev !== null && prev !== undefined){
